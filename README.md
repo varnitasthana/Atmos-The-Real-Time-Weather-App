@@ -22,3 +22,7 @@ https://varnitasthana.github.io/Real-Time-Weather/
 - OpenWeatherMap APIs
 - GitHub Pages
 
+## Privacy
+Browser geolocation is requested only after the page loads and the API key is used
+for public weather requests. No location history is sent to a custom server.
+
