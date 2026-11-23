@@ -1,4 +1,4 @@
-const CACHE_NAME = "atmos-weather-v1";
+const CACHE_NAME = "atmos-weather-v2";
 const APP_ASSETS = ["./", "./index.html", "./style.css", "./script.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
