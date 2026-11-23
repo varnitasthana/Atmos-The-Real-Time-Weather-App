@@ -1,5 +1,5 @@
 const CACHE_NAME = "atmos-weather-v2";
-const APP_ASSETS = ["./", "./index.html", "./style.css", "./script.js", "./manifest.webmanifest"];
+const APP_ASSETS = ["./", "./index.html", "./style.css", "./script.js", "./manifest.webmanifest", "./news.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_ASSETS)));
