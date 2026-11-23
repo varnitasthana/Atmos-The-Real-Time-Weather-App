@@ -13,7 +13,7 @@ A polished, responsive weather dashboard powered by OpenWeatherMap data.
 - Responsive, accessible dashboard design
 
 ## Live demo
-https://varnitasthana.github.io/Real-Time-Weather/
+https://varnitasthana.github.io/Atmos-The-Real-Time-Weather-App/
 
 ## Stack
 - HTML5
