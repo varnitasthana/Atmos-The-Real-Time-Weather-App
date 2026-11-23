@@ -3,6 +3,12 @@ const BASE_URL = "https://api.openweathermap.org";
 const FAVORITES_KEY = "atmos-favorites";
 const UNIT_KEY = "atmos-unit";
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+
 let unit = localStorage.getItem(UNIT_KEY) || "metric";
 let currentLocation = null;
 let suggestionTimer = null;

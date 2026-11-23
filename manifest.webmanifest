@@ -1,0 +1,10 @@
+{
+  "name": "Atmos Real-Time Weather",
+  "short_name": "Atmos",
+  "description": "Live weather, forecasts, and air quality.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b131f",
+  "theme_color": "#09111f",
+  "icons": []
+}
