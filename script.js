@@ -162,6 +162,7 @@ async function loadWeather(lat, lon, name = "", country = "") {
     renderAirQuality(air);
     renderBrief(current, forecast);
     renderFavorites();
+    loadWeatherNews();
     setStatus("");
   } catch (error) {
     setStatus(error.message, "error");
@@ -282,6 +283,35 @@ function renderBrief(current, forecast) {
       <div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.detail)}</p></div>
     </div>
   `).join("");
+  renderAdvisory(current, forecast);
+}
+
+function renderAdvisory(current, forecast) {
+  const rainChance = Math.max(...forecast.list.slice(0, 8).map((item) => item.pop));
+  const temperature = current.main.temp;
+  const wind = current.wind.speed * (unit === "metric" ? 3.6 : 2.236936);
+  const main = current.weather[0].main.toLowerCase();
+  let title = "No active advisory detected";
+  let detail = "Conditions will be checked whenever weather is refreshed.";
+
+  if (main.includes("thunder")) {
+    title = "Thunderstorm alert";
+    detail = "Stay indoors and avoid exposed locations until storms pass.";
+  } else if (rainChance >= 0.7) {
+    title = "High rain probability";
+    detail = "Rain is likely during the next forecast window. Plan travel accordingly.";
+  } else if (wind >= 50) {
+    title = "High wind advisory";
+    detail = "Secure loose objects and use extra caution outdoors.";
+  } else if (temperature >= (unit === "metric" ? 35 : 95)) {
+    title = "High temperature advisory";
+    detail = "Hydrate regularly and avoid prolonged exposure to direct heat.";
+  } else if (temperature <= (unit === "metric" ? 0 : 32)) {
+    title = "Cold weather advisory";
+    detail = "Use adequate cold-weather protection and monitor icy surfaces.";
+  }
+  document.querySelector("#advisoryTitle").textContent = title;
+  document.querySelector("#advisoryDetail").textContent = detail;
 }
 
 function getFavorites() {
@@ -426,6 +456,43 @@ document.addEventListener("click", (event) => {
     elements.suggestions.classList.remove("visible");
   }
 });
+
+async function loadWeatherNews() {
+  const grid = document.querySelector("#newsGrid");
+  const updated = document.querySelector("#newsUpdated");
+  try {
+    const response = await fetch(`./news.json?cache=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("News feed unavailable");
+    const feed = await response.json();
+    updated.textContent = feed.updated
+      ? `Updated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(feed.updated))}`
+      : "Latest coverage";
+    if (!feed.items?.length) throw new Error("No news items available");
+    grid.innerHTML = feed.items.slice(0, 6).map((item) => `
+      <article class="news-card">
+        ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" loading="lazy" />` : '<div class="news-image-placeholder" aria-hidden="true"></div>'}
+        <div class="news-card-copy">
+          <div class="news-meta"><span>${escapeHtml(item.source)}</span><time datetime="${escapeHtml(item.published)}">${escapeHtml(formatNewsDate(item.published))}</time></div>
+          <h3>${escapeHtml(item.title)}</h3>
+          ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
+          <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">Read full story <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+    `).join("");
+  } catch {
+    updated.textContent = "Weather news unavailable";
+    grid.innerHTML = '<article class="news-card news-empty"><h3>Latest briefing unavailable</h3><p>Weather conditions remain live. News will refresh automatically at the next update.</p></article>';
+  }
+}
+
+function formatNewsDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Latest";
+  return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
+    Math.round((date.getTime() - Date.now()) / 86400000),
+    "day",
+  );
+}
 
 renderFavorites();
 const savedLocation = getFavorites()[0];

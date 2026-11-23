@@ -23,6 +23,7 @@
         </a>
 
         <div class="topbar-actions">
+          <a class="nav-link" href="#weather-news">Weather news</a>
           <div class="unit-switch" role="group" aria-label="Temperature unit">
             <button type="button" class="unit-button active" data-unit="metric" aria-pressed="true">°C</button>
             <button type="button" class="unit-button" data-unit="imperial" aria-pressed="false">°F</button>
@@ -151,7 +152,37 @@
             </div>
             <div id="favoritesList" class="favorites-list"></div>
           </article>
+          <article class="weather-card advisory-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Safety</p>
+                <h2>Weather advisories</h2>
+              </div>
+            </div>
+            <div id="advisoryPanel" class="advisory-panel">
+              <span class="advisory-dot" aria-hidden="true"></span>
+              <div>
+                <strong id="advisoryTitle">No active advisory detected</strong>
+                <p id="advisoryDetail">Conditions will be checked whenever weather is refreshed.</p>
+              </div>
+            </div>
+          </article>
         </aside>
+      </section>
+
+      <section id="weather-news" class="news-section" aria-labelledby="newsHeading">
+        <div class="news-heading">
+          <div>
+            <p class="eyebrow">Live briefing</p>
+            <h2 id="newsHeading">Weather & climate news</h2>
+          </div>
+          <p id="newsUpdated" class="news-updated">Loading latest coverage</p>
+        </div>
+        <div id="newsGrid" class="news-grid" aria-live="polite">
+          <article class="news-card news-skeleton"><span></span><div></div><div></div></article>
+          <article class="news-card news-skeleton"><span></span><div></div><div></div></article>
+          <article class="news-card news-skeleton"><span></span><div></div><div></div></article>
+        </div>
       </section>
     </main>
 
