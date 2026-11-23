@@ -1,84 +1,156 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>REAL-TIME WEATHER APP</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom, #003973, #e5e5be);
-      color: #fff;
-      text-align: center;
-      min-height: 100vh;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#09111f" />
+    <meta name="description" content="Real-time weather forecasts, air quality, hourly conditions, and local weather insights." />
+    <title>Atmos — Real-time Weather</title>
+    <link rel="preconnect" href="https://api.openweathermap.org" />
+    <link rel="preconnect" href="https://openweathermap.org" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Atmos weather home">
+          <span class="brand-mark" aria-hidden="true">A</span>
+          <span>Atmos</span>
+        </a>
 
-    h1 {
-      font-size: 2rem;
-      margin-top: 30px;
-    }
+        <div class="topbar-actions">
+          <div class="unit-switch" role="group" aria-label="Temperature unit">
+            <button type="button" class="unit-button active" data-unit="metric" aria-pressed="true">°C</button>
+            <button type="button" class="unit-button" data-unit="imperial" aria-pressed="false">°F</button>
+          </div>
+          <button type="button" id="locationButton" class="icon-button" aria-label="Use current location" title="Use current location">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
+          </button>
+        </div>
+      </header>
 
-    #cityInput {
-      padding: 12px 20px;
-      width: 300px;
-      font-size: 16px;
-      border-radius: 10px;
-      border: none;
-      margin-top: 20px;
-      margin-bottom: 10px;
-    }
+      <section class="search-section" aria-label="Weather search">
+        <form id="searchForm" class="search-form" autocomplete="off">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 20-4.35-4.35A7.5 7.5 0 1 0 15.35 17l4.3 4.3L21 20ZM5.5 10.5a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z"/></svg>
+          <label class="sr-only" for="cityInput">Search city</label>
+          <input id="cityInput" type="search" placeholder="Search city or location" aria-describedby="searchHint" />
+          <button type="submit" class="search-button">Search</button>
+        </form>
+        <p id="searchHint" class="sr-only">Enter a city name and press Enter or Search.</p>
+        <div id="suggestions" class="suggestions" role="listbox" aria-label="Location suggestions"></div>
+      </section>
 
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      border: none;
-      border-radius: 10px;
-      background-color: #0a2f5c;
-      color: white;
-      cursor: pointer;
-    }
+      <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
 
-    #weatherResult {
-      margin-top: 20px;
-      font-size: 18px;
-    }
+      <section id="dashboard" class="dashboard" aria-label="Weather dashboard">
+        <div class="dashboard-main">
+          <article class="hero-card weather-card">
+            <div class="hero-top">
+              <div>
+                <p class="location-label" id="locationLabel">Loading location</p>
+                <p class="updated-label" id="updatedLabel">Updating weather</p>
+              </div>
+              <button type="button" id="favoriteButton" class="favorite-button" aria-label="Add location to favorites" title="Add to favorites">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.5 2.9 5.88 6.49.94-4.69 4.57 1.11 6.46L12 17.28l-5.81 3.07 1.11-6.46-4.69-4.57 6.49-.94L12 2.5Z"/></svg>
+              </button>
+            </div>
 
-    #animation {
-      height: 200px;
-      width: 100%;
-      margin-top: 30px;
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center;
-      border-radius: 10px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      transition: background-image 0.4s ease-in-out;
-    }
+            <div class="current-weather">
+              <div class="temperature-wrap">
+                <span id="currentTemperature" class="current-temperature">--°</span>
+                <span id="feelsLike" class="feels-like">Feels like --°</span>
+              </div>
+              <div class="condition-wrap">
+                <img id="weatherIcon" class="weather-icon" alt="" />
+                <div>
+                  <p id="conditionName" class="condition-name">Loading</p>
+                  <p id="conditionDetail" class="condition-detail">Weather conditions</p>
+                </div>
+              </div>
+            </div>
 
-    .clear { background-image: url(https://i.gifer.com/Dg8H.gif'); }
-    .cloudy { background-image: url('https://i.gifer.com/7RtZ.gif'); }
-    .rainy { background-image: url('https://i.gifer.com/VgG.gif'); }
-    .snowy { background-image: url('https://i.gifer.com/Y6c.gif'); }
-    .thunder { background-image: url('https://i.gifer.com/Ba.gif'); }
-    .sunny { background-image: url('https://i.gifer.com/8dO.gif'); }
+            <div class="metric-grid">
+              <div class="metric">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C9 6 5 11 5 15a7 7 0 0 0 14 0c0-4-4-9-7-13Zm0 18a5 5 0 0 1-5-5c0-2.25 1.93-5.45 5-9.7 3.07 4.25 5 7.45 5 9.7a5 5 0 0 1-5 5Z"/></svg>
+                <div><span>Humidity</span><strong id="humidityMetric">--%</strong></div>
+              </div>
+              <div class="metric">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h10a3 3 0 1 0-3-3h2a5 5 0 1 1 5 5H4v-2Zm0 4h13a3 3 0 1 1-3 3h-2a5 5 0 1 0 5-5H4v2Z"/></svg>
+                <div><span>Wind</span><strong id="windMetric">-- km/h</strong></div>
+              </div>
+              <div class="metric">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V2m0 20v-2m8-8h2M2 12h2m14.36-6.36 1.42-1.42M4.22 19.78l1.42-1.42m12.72 0 1.42 1.42M4.22 4.22l1.42 1.42A8 8 0 1 0 12 4a7.98 7.98 0 0 0-5.64 2.34l-1.42-1.42A10 10 0 1 1 2 12h2a8 8 0 0 0 2.34-5.66Z"/></svg>
+                <div><span>Visibility</span><strong id="visibilityMetric">-- km</strong></div>
+              </div>
+              <div class="metric">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 2v7.5a5.5 5.5 0 1 0 11 0V2h-2v7.5a3.5 3.5 0 1 1-7 0V2h-2ZM12 7v9" /></svg>
+                <div><span>Pressure</span><strong id="pressureMetric">-- hPa</strong></div>
+              </div>
+            </div>
+          </article>
 
-  </style>
-</head>
-<body>
+          <article class="weather-card hourly-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Next 24 hours</p>
+                <h2>Hourly forecast</h2>
+              </div>
+            </div>
+            <div id="hourlyForecast" class="hourly-list" aria-live="polite"></div>
+          </article>
 
-  <h1>🌤️ REAL-TIME WEATHER APP</h1>
+          <article class="weather-card forecast-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Extended outlook</p>
+                <h2>5-day forecast</h2>
+              </div>
+            </div>
+            <div id="dailyForecast" class="daily-list"></div>
+          </article>
+        </div>
 
-  <input type="text" id="cityInput" placeholder="Enter city name" />
-  <br>
-  <button onclick="getWeather()">Search</button>
+        <aside class="dashboard-side">
+          <article class="weather-card aqi-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Air quality</p>
+                <h2 id="aqiTitle">Loading</h2>
+              </div>
+              <span id="aqiBadge" class="aqi-badge">--</span>
+            </div>
+            <div class="aqi-scale" aria-hidden="true"><span></span></div>
+            <p id="aqiDescription" class="brief-copy">Fetching local air quality data.</p>
+            <div class="pollutant-grid">
+              <div><span>PM2.5</span><strong id="pm25">--</strong></div>
+              <div><span>PM10</span><strong id="pm10">--</strong></div>
+              <div><span>O₃</span><strong id="o3">--</strong></div>
+            </div>
+          </article>
 
-  <div id="weatherResult"></div>
-  <div id="animation"></div>
+          <article class="weather-card brief-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Weather briefing</p>
+                <h2>Local insight</h2>
+              </div>
+            </div>
+            <div id="weatherBrief" class="brief-list"></div>
+          </article>
 
-  <script src="script.js"></script>
-</body>
+          <article class="weather-card favorites-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Saved places</p>
+                <h2>Favorites</h2>
+              </div>
+            </div>
+            <div id="favoritesList" class="favorites-list"></div>
+          </article>
+        </aside>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
 </html>

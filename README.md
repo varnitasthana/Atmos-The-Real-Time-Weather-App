@@ -1,18 +1,24 @@
-# Real-Time Weather App 🌦️
+# Atmos — Real-Time Weather
 
-A responsive weather app that fetches and displays real-time weather data based on user input using the OpenWeatherMap API.
+A polished, responsive weather dashboard powered by OpenWeatherMap data.
 
-## 🚀 Features
-- Real-time temperature and weather info
-- Fetch by city name
-- Responsive UI (HTML/CSS/JS)
+## Features
+- Live current conditions and 5-day forecast
+- Hourly forecast and precipitation probability
+- City search with location suggestions
+- Browser geolocation with automatic fallback
+- Air quality and pollutant measurements
+- Celsius/Fahrenheit switching
+- Saved favorite locations
+- Responsive, accessible dashboard design
 
-## 🔗 Live Demo
-👉 [Click to View](https://varnitasthana.github.io/Real-Time-Weather/)
+## Live demo
+https://varnitasthana.github.io/Real-Time-Weather/
 
-## 📂 Tech Stack
-- HTML
-- CSS
-- JavaScript
-- GitHub Pages for deployment
+## Stack
+- HTML5
+- Modern CSS
+- Vanilla JavaScript
+- OpenWeatherMap APIs
+- GitHub Pages
 
