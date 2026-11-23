@@ -23,13 +23,20 @@
         </a>
 
         <div class="topbar-actions">
-          <a class="nav-link" href="#weather-news">Weather news</a>
+          <div class="local-clock" aria-live="polite">
+            <span id="localTime">--:--</span>
+            <small id="localDate">Local time</small>
+          </div>
+          <a class="nav-link" href="#weather-news">Local news</a>
           <div class="unit-switch" role="group" aria-label="Temperature unit">
             <button type="button" class="unit-button active" data-unit="metric" aria-pressed="true">°C</button>
             <button type="button" class="unit-button" data-unit="imperial" aria-pressed="false">°F</button>
           </div>
           <button type="button" id="locationButton" class="icon-button" aria-label="Use current location" title="Use current location">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
+          </button>
+          <button type="button" id="refreshButton" class="icon-button" aria-label="Refresh weather" title="Refresh weather">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66l1.41-1.41A6 6 0 1 1 18 10H14v2h8V4h-2v7Z"/></svg>
           </button>
         </div>
       </header>
@@ -92,6 +99,7 @@
                 <div><span>Pressure</span><strong id="pressureMetric">-- hPa</strong></div>
               </div>
             </div>
+            <div id="extraMetrics" class="metric-grid extra-metrics"></div>
           </article>
 
           <article class="weather-card hourly-card">
@@ -108,7 +116,7 @@
             <div class="card-heading">
               <div>
                 <p class="eyebrow">Extended outlook</p>
-                <h2>5-day forecast</h2>
+                <h2>5-day outlook</h2>
               </div>
             </div>
             <div id="dailyForecast" class="daily-list"></div>
@@ -174,7 +182,7 @@
         <div class="news-heading">
           <div>
             <p class="eyebrow">Live briefing</p>
-            <h2 id="newsHeading">Weather & climate news</h2>
+            <h2 id="newsHeading">Today in <span id="newsLocation">your city</span></h2>
           </div>
           <p id="newsUpdated" class="news-updated">Loading latest coverage</p>
         </div>

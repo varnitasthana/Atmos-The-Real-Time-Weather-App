@@ -118,6 +118,19 @@ button { cursor: pointer; }
 
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 
+.local-clock {
+  min-width: 92px;
+  display: grid;
+  justify-items: end;
+  margin-right: 8px;
+  line-height: 1.1;
+}
+.local-clock span { color: var(--ink); font-size: .9rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.local-clock small { margin-top: 4px; color: var(--muted); font-size: .68rem; }
+
+#refreshButton svg { transition: transform .35s ease; }
+#refreshButton.loading svg { transform: rotate(360deg); }
+
 .unit-switch {
   display: flex;
   align-items: center;
@@ -320,6 +333,15 @@ button { cursor: pointer; }
   margin-top: 8px;
   padding-top: 22px;
 }
+.extra-metrics {
+  margin-top: 0;
+  padding-top: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  border-top: 0;
+  max-width: 50%;
+  margin-left: auto;
+}
+.extra-metrics:empty { display: none; }
 .metric {
   display: flex;
   align-items: center;
@@ -529,6 +551,7 @@ button { cursor: pointer; }
 .news-card a { color: var(--accent); font-size: .78rem; font-weight: 800; text-decoration: none; }
 .news-card a span { margin-left: 3px; }
 .news-empty { grid-column: 1/-1; padding: 24px; }
+.news-empty a { color: var(--accent); }
 .news-skeleton { height: 260px; padding: 18px; }
 .news-skeleton span,
 .news-skeleton div { display: block; border-radius: 8px; background: rgba(255,255,255,.055); animation: pulse 1.4s ease-in-out infinite alternate; }
@@ -548,6 +571,7 @@ button { cursor: pointer; }
 @media (max-width: 760px) {
   .app-shell { width: min(100% - 28px, 1480px); }
   .nav-link { display: none; }
+  .local-clock { display: none; }
   .topbar { height: 72px; }
   .search-section { margin-top: 18px; }
   .search-form { height: 54px; }
