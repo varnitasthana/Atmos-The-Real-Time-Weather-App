@@ -14,6 +14,9 @@ let currentLocation = null;
 let suggestionTimer = null;
 let locationRequestLocked = false;
 let activeSuggestion = -1;
+let localClockTimer = null;
+let refreshTimer = null;
+let currentTimezoneOffset = 0;
 
 const elements = {
   form: document.querySelector("#searchForm"),
@@ -23,6 +26,7 @@ const elements = {
   locationButton: document.querySelector("#locationButton"),
   favoriteButton: document.querySelector("#favoriteButton"),
   favoritesList: document.querySelector("#favoritesList"),
+  refreshButton: document.querySelector("#refreshButton"),
 };
 
 function setStatus(message = "", type = "loading") {
@@ -77,6 +81,29 @@ function formatDay(timestamp, timezoneOffset) {
     weekday: "short",
     timeZone: "UTC",
   }).format(date);
+}
+
+function startLocalClock(offset) {
+  currentTimezoneOffset = offset;
+  clearInterval(localClockTimer);
+  const update = () => {
+    const now = new Date(Date.now() + offset * 1000);
+    const utc = new Date(now.toISOString());
+    document.querySelector("#localTime").textContent = new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "UTC",
+    }).format(utc);
+    document.querySelector("#localDate").textContent = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(utc);
+  };
+  update();
+  localClockTimer = setInterval(update, 1000);
 }
 
 function weatherTheme(condition) {
@@ -142,6 +169,7 @@ function escapeHtml(value) {
 
 async function loadWeather(lat, lon, name = "", country = "") {
   locationRequestLocked = true;
+  elements.refreshButton.classList.add("loading");
   setStatus("Loading live weather data", "loading");
   try {
     const [current, forecast, air] = await Promise.all([
@@ -163,15 +191,19 @@ async function loadWeather(lat, lon, name = "", country = "") {
     renderBrief(current, forecast);
     renderFavorites();
     loadWeatherNews();
+    scheduleWeatherRefresh();
     setStatus("");
   } catch (error) {
     setStatus(error.message, "error");
+  } finally {
+    elements.refreshButton.classList.remove("loading");
   }
 }
 
 function renderCurrent(data) {
   const weather = data.weather[0];
   const offset = data.timezone;
+  startLocalClock(offset);
   weatherTheme(weather.main);
   document.querySelector("#locationLabel").textContent = `${data.name}, ${data.sys.country}`;
   document.querySelector("#updatedLabel").textContent = `Updated ${formatTime(data.dt, offset)} local time`;
@@ -186,6 +218,13 @@ function renderCurrent(data) {
   document.querySelector("#windMetric").textContent = windSpeed(data.wind.speed);
   document.querySelector("#visibilityMetric").textContent = visibilityLabel(data.visibility || 0);
   document.querySelector("#pressureMetric").textContent = `${data.main.pressure} hPa`;
+  const extraMetrics = document.querySelector("#extraMetrics");
+  if (extraMetrics) {
+    extraMetrics.innerHTML = `
+      <div class="metric"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12M7.76 16.24l-2.12 2.12M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg><div><span>Sunrise</span><strong>${formatTime(data.sys.sunrise, offset)}</strong></div></div>
+      <div class="metric"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12M7.76 16.24l-2.12 2.12M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg><div><span>Sunset</span><strong>${formatTime(data.sys.sunset, offset)}</strong></div></div>
+    `;
+  }
 
   const saved = getFavorites().some((item) => item.lat === currentLocation.lat && item.lon === currentLocation.lon);
   elements.favoriteButton.classList.toggle("active", saved);
@@ -212,7 +251,7 @@ function renderForecast(data) {
     days.get(key).push(item);
   });
 
-  const daily = [...days.entries()].slice(0, 5).map(([day, items]) => {
+  const daily = [...days.entries()].slice(0, 7).map(([day, items]) => {
     const representative = items.reduce((best, item) =>
       item.pop > best.pop ? item : best
     );
@@ -289,7 +328,7 @@ function renderBrief(current, forecast) {
 function renderAdvisory(current, forecast) {
   const rainChance = Math.max(...forecast.list.slice(0, 8).map((item) => item.pop));
   const temperature = current.main.temp;
-  const wind = current.wind.speed * (unit === "metric" ? 3.6 : 2.236936);
+  const wind = unit === "metric" ? current.wind.speed * 3.6 : current.wind.speed;
   const main = current.weather[0].main.toLowerCase();
   let title = "No active advisory detected";
   let detail = "Conditions will be checked whenever weather is refreshed.";
@@ -423,6 +462,13 @@ elements.input.addEventListener("keydown", (event) => {
 });
 
 elements.locationButton.addEventListener("click", waitForLocation);
+elements.refreshButton.addEventListener("click", () => {
+  if (currentLocation) {
+    loadWeather(currentLocation.lat, currentLocation.lon, currentLocation.name, currentLocation.country);
+  } else {
+    waitForLocation();
+  }
+});
 elements.favoriteButton.addEventListener("click", () => {
   if (!currentLocation) return;
   const favorites = getFavorites();
@@ -460,28 +506,63 @@ document.addEventListener("click", (event) => {
 async function loadWeatherNews() {
   const grid = document.querySelector("#newsGrid");
   const updated = document.querySelector("#newsUpdated");
+  const locationName = currentLocation?.name || "your city";
+  document.querySelector("#newsLocation").textContent = locationName;
   try {
-    const response = await fetch(`./news.json?cache=${Date.now()}`, { cache: "no-store" });
+    const cityQuery = encodeURIComponent(`weather forecast ${locationName} ${currentLocation?.country || ""}`);
+    const rssUrl = `https://news.google.com/rss/search?q=${cityQuery}&hl=en-US&gl=US&ceid=US:en`;
+    const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=6`, { cache: "no-store" });
     if (!response.ok) throw new Error("News feed unavailable");
     const feed = await response.json();
-    updated.textContent = feed.updated
-      ? `Updated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(feed.updated))}`
-      : "Latest coverage";
-    if (!feed.items?.length) throw new Error("No news items available");
+    if (feed.status !== "ok" || !feed.items?.length) throw new Error("No news items available");
+    updated.textContent = `Updated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date())}`;
     grid.innerHTML = feed.items.slice(0, 6).map((item) => `
       <article class="news-card">
         ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" loading="lazy" />` : '<div class="news-image-placeholder" aria-hidden="true"></div>'}
         <div class="news-card-copy">
-          <div class="news-meta"><span>${escapeHtml(item.source)}</span><time datetime="${escapeHtml(item.published)}">${escapeHtml(formatNewsDate(item.published))}</time></div>
+          <div class="news-meta"><span>${escapeHtml(item.author || "Local weather news")}</span><time datetime="${escapeHtml(item.pubDate)}">${escapeHtml(formatNewsDate(item.pubDate))}</time></div>
           <h3>${escapeHtml(item.title)}</h3>
-          ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
-          <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">Read full story <span aria-hidden="true">↗</span></a>
+          ${item.description ? `<p>${escapeHtml(stripHtml(item.description).slice(0, 160))}</p>` : ""}
+          <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer">Read full story <span aria-hidden="true">↗</span></a>
         </div>
       </article>
     `).join("");
   } catch {
-    updated.textContent = "Weather news unavailable";
-    grid.innerHTML = '<article class="news-card news-empty"><h3>Latest briefing unavailable</h3><p>Weather conditions remain live. News will refresh automatically at the next update.</p></article>';
+    try {
+      const fallback = await fetch(`./news.json?cache=${Date.now()}`, { cache: "no-store" });
+      if (!fallback.ok) throw new Error("Fallback unavailable");
+      const feed = await fallback.json();
+      updated.textContent = feed.updated
+        ? `Latest feed • Updated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(feed.updated))}`
+        : "Latest weather feed";
+      const stories = (feed.items || []).slice(0, 5).map((item) => `
+        <article class="news-card">
+          <div class="news-image-placeholder" aria-hidden="true"></div>
+          <div class="news-card-copy">
+            <div class="news-meta"><span>${escapeHtml(item.source || "Weather news")}</span><time datetime="${escapeHtml(item.published)}">${escapeHtml(formatNewsDate(item.published))}</time></div>
+            <h3>${escapeHtml(item.title)}</h3>
+            ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
+            <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">Read full story <span aria-hidden="true">↗</span></a>
+          </div>
+        </article>
+      `).join("");
+      const citySearch = `https://news.google.com/search?q=${encodeURIComponent(`weather forecast ${locationName}`)}`;
+      grid.innerHTML = `
+        ${stories}
+        <article class="news-card news-city-search">
+          <div class="news-image-placeholder" aria-hidden="true"></div>
+          <div class="news-card-copy">
+            <div class="news-meta"><span>${escapeHtml(locationName)}</span><time>Live search</time></div>
+            <h3>Explore live weather coverage for ${escapeHtml(locationName)}</h3>
+            <p>Open today’s latest forecast, storm, travel, and climate reports for this location.</p>
+            <a href="${citySearch}" target="_blank" rel="noopener noreferrer">Search live news <span aria-hidden="true">↗</span></a>
+          </div>
+        </article>
+      `;
+    } catch {
+      updated.textContent = "Latest weather coverage";
+      grid.innerHTML = '<article class="news-card news-empty"><h3>Live briefing</h3><p>Weather conditions remain available. Open <a href="https://news.google.com/search?q=weather" target="_blank" rel="noopener noreferrer">live weather news</a> for the latest reports.</p></article>';
+    }
   }
 }
 
@@ -492,6 +573,21 @@ function formatNewsDate(value) {
     Math.round((date.getTime() - Date.now()) / 86400000),
     "day",
   );
+}
+
+function stripHtml(value) {
+  const element = document.createElement("div");
+  element.innerHTML = value;
+  return element.textContent || element.innerText || "";
+}
+
+function scheduleWeatherRefresh() {
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    if (currentLocation) {
+      loadWeather(currentLocation.lat, currentLocation.lon, currentLocation.name, currentLocation.country);
+    }
+  }, 10 * 60 * 1000);
 }
 
 renderFavorites();

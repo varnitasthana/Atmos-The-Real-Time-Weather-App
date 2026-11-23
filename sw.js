@@ -1,4 +1,4 @@
-const CACHE_NAME = "atmos-weather-v2";
+const CACHE_NAME = "atmos-weather-v4";
 const APP_ASSETS = ["./", "./index.html", "./style.css", "./script.js", "./manifest.webmanifest", "./news.json"];
 
 self.addEventListener("install", (event) => {
@@ -16,6 +16,22 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) return;
+  if (event.request.mode === "navigate" || /\.(html|js|css|json)$/.test(requestUrl.pathname)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html"))),
+    );
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const network = fetch(event.request).then((response) => {
