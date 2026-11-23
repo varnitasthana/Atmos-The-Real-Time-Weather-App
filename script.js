@@ -13,6 +13,7 @@ let unit = localStorage.getItem(UNIT_KEY) || "metric";
 let currentLocation = null;
 let suggestionTimer = null;
 let locationRequestLocked = false;
+let activeSuggestion = -1;
 
 const elements = {
   form: document.querySelector("#searchForm"),
@@ -108,17 +109,19 @@ async function searchLocations(query) {
   if (query.trim().length < 2) {
     elements.suggestions.innerHTML = "";
     elements.suggestions.classList.remove("visible");
+    activeSuggestion = -1;
     return;
   }
   try {
     const results = await api("/geo/1.0/direct", { q: query.trim(), limit: "5" });
     elements.suggestions.innerHTML = results.map((item, index) => `
-      <button type="button" role="option" data-index="${index}">
+      <button type="button" role="option" data-index="${index}" aria-selected="false">
         <strong>${escapeHtml(item.name)}</strong>
         <span>${escapeHtml([item.state, item.country].filter(Boolean).join(", "))}</span>
       </button>
     `).join("");
     elements.suggestions.classList.toggle("visible", results.length > 0);
+    activeSuggestion = -1;
     elements.suggestions.querySelectorAll("button").forEach((button, index) => {
       button.addEventListener("click", () => {
         elements.input.value = `${results[index].name}, ${results[index].country}`;
@@ -359,7 +362,34 @@ elements.form.addEventListener("submit", async (event) => {
 
 elements.input.addEventListener("input", () => {
   clearTimeout(suggestionTimer);
+  activeSuggestion = -1;
   suggestionTimer = setTimeout(() => searchLocations(elements.input.value), 300);
+});
+
+elements.input.addEventListener("keydown", (event) => {
+  const options = [...elements.suggestions.querySelectorAll("button")];
+  if (!elements.suggestions.classList.contains("visible") || !options.length) return;
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    activeSuggestion = Math.min(activeSuggestion + 1, options.length - 1);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    activeSuggestion = Math.max(activeSuggestion - 1, 0);
+  } else if (event.key === "Enter" && activeSuggestion >= 0) {
+    event.preventDefault();
+    options[activeSuggestion].click();
+    return;
+  } else if (event.key === "Escape") {
+    elements.suggestions.classList.remove("visible");
+    return;
+  } else {
+    return;
+  }
+  options.forEach((option, index) => {
+    const active = index === activeSuggestion;
+    option.setAttribute("aria-selected", String(active));
+    if (active) option.scrollIntoView({ block: "nearest" });
+  });
 });
 
 elements.locationButton.addEventListener("click", waitForLocation);
